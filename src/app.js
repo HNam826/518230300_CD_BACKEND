@@ -1,6 +1,8 @@
 import express from 'express';
 import path from "path"
 import { title } from 'process';
+import routers from './routers/index.js';
+import mongoConnect from './mongo/mongoConnecter.js';
 const app = express();
 const port = 5001
 const __dirname = path.resolve()
@@ -9,47 +11,10 @@ app.use("/static", express.static(path.join(__dirname, 'public')))
 
 app.set('view engine', 'ejs')
 app.set("views", __dirname + "/src/views")
+routers(app)
 
-app.get('/', (req, res)=>{
-    res.render("pages/index")
-})
 
-app.get('/components', (req, res)=>{
-    res.render("pages/components", {
-        title: "components"
-    })
-})
-
-app.get('/form', (req, res)=>{
-    res.render("pages/form", {
-        title: "form"
-    })
-})
-
-app.get('/icons', (req, res)=>{
-    res.render("pages/icons", {
-        title: "Icons"
-    })
-})
-
-app.get('/tables', (req, res)=>{
-    res.render("pages/tables", {
-        title: "tables"
-    })
-})
-
-app.get('/typography', (req, res)=>{
-    res.render("pages/typography", {
-        title: "typography"
-    })
-})
-
-app.get('/notifications', (req, res)=>{
-    res.render("pages/notifications", {
-        title: "notifications"
-    })
-})  
-
+mongoConnect()
 app.listen(port, function() {
     console.log("http://localhost:" + port);
     
