@@ -3,7 +3,9 @@ import categoryRouters from "./categoryRouters.js"
 export default function routers(app){
     app.use("/categories", categoryRouters)
     app.get('/', (req, res)=>{
-        res.render("pages/index")
+        res.render("pages/index", {
+            title: "Homepage"
+        })
     })
     
     app.get('/components', (req, res)=>{
