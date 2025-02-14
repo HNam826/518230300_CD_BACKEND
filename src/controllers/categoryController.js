@@ -2,11 +2,33 @@ import CategoryModel from "../models/categoryModel.js"
 import { ObjectId } from "mongodb"
 
 export async function listCategory(req, res) {
+    const search = req.query?.search
+    const pageSize = !!req.query.pageSize ? parseInt(req.query.pageSize) : 5
+    const page = !! req.query.page ? parseInt(req.query.page) : 1
+    const skip = (page-1) * pageSize 
+    let filters = {
+        deletedAt: null
+    }
+    if(search && search.length > 0) { 
+        filters["$or"] =[
+            {
+                code: {$regex: search}
+            },
+            {
+                name: {$regex: search}
+            },
+        ] 
+    }  
     try {
-        const categories = await CategoryModel.find({ deletedAt: null})
+        const countCategories = await CategoryModel.countDocuments(filters)
+        const categories = await CategoryModel.find(filters).skip(skip).limit(pageSize)
+        // res.json(categories)
         res.render("pages/categories/list", {
             title: "Categories",
             categories: categories,
+            countPagination: Math.ceil(countCategories/pageSize),
+            pageSize,
+            page,
         })
     } catch (error) {
         console.log(error)
@@ -24,10 +46,10 @@ export async function renderPagecreateCategory(req, res) {
 }
 
 export async function createCategory(req, res) {
-    const { code, name, image } = req.body
+    const data = req.body
     try {
         await CategoryModel.create({
-            code, name, image, createAt: new Date()
+            ...data, createAt: new Date()
         })
         res.redirect("/categories")
     } catch (error) {
@@ -35,8 +57,6 @@ export async function createCategory(req, res) {
         res.send("Tạo loại sản phẩm không thành công")
     }
 }
-
-
 export async function renderPageUpdateCategory(req, res) {
     try {
         const {id} = req.params
@@ -59,14 +79,12 @@ export async function renderPageUpdateCategory(req, res) {
 }
 
 export async function updateCategory(req, res) {
-    const { code, name, image, id} = req.body
+    const { id, ...data } = req.body
     try {
         await CategoryModel.updateOne(
             { _id: new ObjectId(id) },
             {
-                code,
-                name,
-                image,
+                ...data,    
                 updatedAt: new Date()
             })
         res.redirect("/categories")
