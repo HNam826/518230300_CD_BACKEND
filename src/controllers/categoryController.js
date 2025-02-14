@@ -1,40 +1,60 @@
 import CategoryModel from "../models/categoryModel.js"
 import { ObjectId } from "mongodb"
 
+
+// Cấu hình các tùy chọn sắp xếp
+const sortObjects = [
+    { code: "name_ASC", name: "Tên A → Z" },
+    { code: "name_DESC", name: "Tên Z → A" },
+    { code: "code_ASC", name: "Mã A → Z" },
+    { code: "code_DESC", name: "Mã Z → A" },
+];
+
 export async function listCategory(req, res) {
-    const search = req.query?.search
-    const pageSize = !!req.query.pageSize ? parseInt(req.query.pageSize) : 5
-    const page = !! req.query.page ? parseInt(req.query.page) : 1
-    const skip = (page-1) * pageSize 
-    let filters = {
-        deletedAt: null
+    const search = req.query?.search;
+    const pageSize = req.query.pageSize ? parseInt(req.query.pageSize) : 5;
+    const page = req.query.page ? parseInt(req.query.page) : 1;
+    const skip = (page - 1) * pageSize;
+    const sort = req.query.sort || "name_ASC"; // Mặc định là sắp xếp theo tên A-Z
+
+    let filters = { deletedAt: null };
+
+    if (search && search.length > 0) {
+        filters["$or"] = [
+            { code: { $regex: search, $options: "i" } },
+            { name: { $regex: search, $options: "i" } },
+        ];
     }
-    if(search && search.length > 0) { 
-        filters["$or"] =[
-            {
-                code: {$regex: search}
-            },
-            {
-                name: {$regex: search}
-            },
-        ] 
-    }  
+
+    // Xử lý sắp xếp
+    let sortOptions = {};
+    if (sort) {
+        const [field, order] = sort.split("_");
+        sortOptions[field] = order === "DESC" ? -1 : 1; // -1: giảm dần (Z→A), 1: tăng dần (A→Z)
+    }
+
     try {
-        const countCategories = await CategoryModel.countDocuments(filters)
-        const categories = await CategoryModel.find(filters).skip(skip).limit(pageSize)
-        // res.json(categories)
+        const countCategories = await CategoryModel.countDocuments(filters);
+        const categories = await CategoryModel.find(filters)
+            .skip(skip)
+            .limit(pageSize)
+            .sort(sortOptions); // Áp dụng sắp xếp
+
         res.render("pages/categories/list", {
             title: "Categories",
             categories: categories,
-            countPagination: Math.ceil(countCategories/pageSize),
+            countPagination: Math.ceil(countCategories / pageSize),
             pageSize,
             page,
-        })
+            sort,
+            sortObjects,
+        });
     } catch (error) {
-        console.log(error)
-        res.send("Hiện tại chưa có sản phẩm nào!")
+        console.log(error);
+        res.send("Hiện tại chưa có sản phẩm nào!");
     }
 }
+
 
 
 export async function renderPagecreateCategory(req, res) {
